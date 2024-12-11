@@ -13,7 +13,7 @@ public:
     ~ParkingNode();                    // Destructor
 
     bool addChild(ParkingNode* child);     // Method to add child
-    void printChildren() const;     // Print children of node
+    static ParkingNode* init();
 };
 
 #endif  // NODE_H

@@ -17,15 +17,16 @@ bool ParkingNode::addChild(ParkingNode* child) {
     return false;  // Return false if no space to add a child
 }
 
-void ParkingNode::printChildren() const {
+static ParkingNode* ParkingNode::init() {
     // Serial.print("ParkingNode ");
-    // Serial.print(value);
+    // Serial.print(value);:w
     // Serial.print(" has children: ");
     // for (int i = 0; i < childCount; ++i) {
     //     Serial.print(children[i]->value);
     //     Serial.print(" ");
     // }
     // Serial.println();
+
 
     ParkingNode* start1 = new ParkingNode(9, 3);
     start1->addChild(new ParkingNode(0, 0));
@@ -41,6 +42,9 @@ void ParkingNode::printChildren() const {
     middle2->addChild(new ParkingNode(14, 0));
     middle2->addChild(new ParkingNode(4, 0));
     middle2->addChild(new ParkingNode(15, 0));
+    ParkingNode* end1 = new ParkingNode(6, 1);
+    middle2->addChild(end1);
+
 
     ParkingNode* start2 = new ParkingNode(24, 3);
     start2->addChild(new ParkingNode(22, 0));
@@ -56,6 +60,8 @@ void ParkingNode::printChildren() const {
     midddle4->addChild(new ParkingNode(30, 0));
     midddle4->addChild(new ParkingNode(18, 0));
     midddle4->addChild(new ParkingNode(29, 0));
+    ParkingNode* end2 = new ParkingNode(27, 1);
+    midddle4->addChild(end2);
 
     ParkingNode* start3 = new ParkingNode(45, 3);
     start3->addChild(new ParkingNode(36, 0));
@@ -72,6 +78,38 @@ void ParkingNode::printChildren() const {
     midddle6->addChild(new ParkingNode(49, 0));
     midddle6->addChild(new ParkingNode(40, 0) );
     midddle6->addChild(new ParkingNode(50, 0));
+    ParkingNode* end3 = new ParkingNode(42, 1);
+    midddle6->addChild(end3);
+
+
+    ParkingNode* entry = new ParkingNode(-1, 2);
+    entry->addChild(start1);
+    ParkingNode* exit = new ParkingNode(5, 0);
+
+    ParkingNode* street1 = new ParkingNode(10,1);
+    ParkingNode* street2 = new ParkingNode(23, 2);
+    ParkingNode* street3 = new ParkingNode(34, 1);
+    ParkingNode* street4 = new ParkingNode(35, 1);
+
+    ParkingNode* street5 = new ParkingNode(41, 1);
+    ParkingNode* street6 = new ParkingNode(28, 1);
+    ParkingNode* street7 = new ParkingNode(17, 1);
+    ParkingNode* street8 = new ParkingNode(16, 1);
+
+    entry->addChild(street1);
+    street1->addChild(street2);
+    street2->addChild(start2);
+    street2->addChild(street3);
+    street3->addChild(street4);
+    street4->addChild(start3);
+
+    end3->addChild(street5);
+    street5->addChild(street6);
+    street6->addChild(street7);
+    end2->addChild(street7);
+    street7->addChild(street8);
+    street8->addChild(exit);
+    end1->addChild(exit);
 
 
 
