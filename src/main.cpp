@@ -3,8 +3,6 @@
 #include <List.hpp>
 #include "ParkingNode.h"
 
-using namespace std;
-
 #define NUM_LEDS 51
 #define LED_PIN     13  // Pin connected to the LED strip
 #define CHIPSET     WS2812B
@@ -25,7 +23,7 @@ const int numBits = 40;   /* Set to 8 * number of shift registers */
 
 void displayNumber(int number);
 
-
+int sensorToLedMapping[numBits] = {12, 10, 1, 2, 22, 23, 11, 13, 3, 4, 5, 7, 16, 15, 18, 14, 21, 20, 19, 28, 32, 33, 34, 25, 35, 42, 31, 30, 49, 46, 47, 37, 41, 40, 39, 38, 50, 43, 51, 48};
 // byte toByte(int value) {
 //     return (value >= 0 && value <= 255) ? static_cast<byte>(value) : 0;
 // }
@@ -58,7 +56,6 @@ void loop() {
   digitalWrite(latchPin, HIGH);
   delay(50);
 
-  bool sensorArray[numBits] = {false};
   int count = 0;
  
   // Step 2: Shift
@@ -70,14 +67,12 @@ void loop() {
     Serial.print(i);
     Serial.print(":");
     if (bit == HIGH) {
-      sensorArray[i] = false;
-      leds[i] = CRGB::Black;
+      leds[sensorToLedMapping[i]] = CRGB::Black;
       Serial.print("0");
     } else {
 
-      sensorArray[i] = true;
       Serial.print("1");
-      leds[i] = CRGB::Green;
+      leds[sensorToLedMapping[i]] = CRGB::Green;
 
       count++;
     }

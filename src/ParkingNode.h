@@ -12,28 +12,19 @@ public:
     ParkingNode(int led, int maxChildren)
     : ledIndex(led), maxChildren(maxChildren), childCount(0) {
     children = new ParkingNode*[maxChildren];  // Dynamically allocate memory for children
-};  // Constructor
-    ~ParkingNode() {
-    delete[] children;  // Clean up the memory
-}                    // Destructor
+}
+    ~ParkingNode() { // Destructor
+        delete[] children;  // Clean up the memory
+    }
 
-    bool addChild(ParkingNode* child) {
-    if (childCount < maxChildren) {
-        children[childCount++] = child;
-        return true;
+    bool addChild(ParkingNode* child) {  // Method to add child
+        if (childCount < maxChildren) {
+         children[childCount++] = child;
+            return true;
     }
     return false;  // Return false if no space to add a child
-}    // Method to add child
-    static ParkingNode* ParkingNode::init() {
-    // Serial.print("ParkingNode ");
-    // Serial.print(value);:w
-    // Serial.print(" has children: ");
-    // for (int i = 0; i < childCount; ++i) {
-    //     Serial.print(children[i]->value);
-    //     Serial.print(" ");
-    // }
-    // Serial.println();
-
+}    
+    static ParkingNode* init() {
 
     ParkingNode* start1 = new ParkingNode(9, 3);
     start1->addChild(new ParkingNode(0, 0));
@@ -123,6 +114,113 @@ public:
     return entry;
 
 }
+
+bool bfsWithPath(int start, int target, int path[], int &pathLength) {
+    // Initialize queue
+    int queue[MAX_NODES];
+    int front = 0, rear = 0;
+    
+    // Initialize visited array
+    bool visited[MAX_NODES] = {false};
+    
+    // Parent array to reconstruct the path
+    int parent[MAX_NODES];
+    for (int i = 0; i < MAX_NODES; i++) parent[i] = -1;
+    
+    // Enqueue the starting node
+    queue[rear++] = start;
+    visited[start] = true;
+
+    // BFS loop
+    while (front < rear) {
+        int currentNode = queue[front++];
+        
+        // Check if the target node is reached
+        if (currentNode == target) {
+            // Reconstruct the path
+            int current = target;
+            pathLength = 0;
+            while (current != -1) {
+                path[pathLength++] = current;
+                current = parent[current];
+            }
+            // Reverse the path to get the correct order
+            for (int i = 0; i < pathLength / 2; i++) {
+                int temp = path[i];
+                path[i] = path[pathLength - 1 - i];
+                path[pathLength - 1 - i] = temp;
+            }
+            return true;
+        }
+
+        // Explore neighbors
+        for (int neighbor = 0; neighbor < MAX_NODES; neighbor++) {
+            if (graph[currentNode][neighbor] && !visited[neighbor]) {
+                visited[neighbor] = true;
+                queue[rear++] = neighbor;
+                parent[neighbor] = currentNode; // Track the path
+            }
+        }
+    }
+
+    // If we reach here, the target is not reachable
+    return false;
+}
+bool bfsWithPath(int start, int target, int path[], int &pathLength) {
+    int MAX_NODES = 52;
+    // Initialize queue
+    int queue[MAX_NODES];
+    int front = 0, rear = 0;
+    
+    // Initialize visited array
+    bool visited[MAX_NODES] = {false};
+    
+    // Parent array to reconstruct the path
+    int parent[MAX_NODES];
+    for (int i = 0; i < MAX_NODES; i++) parent[i] = -1;
+    
+    // Enqueue the starting node
+    queue[rear++] = start;
+    visited[start] = true;
+
+    // BFS loop
+    while (front < rear) {
+        int currentNode = queue[front++];
+        
+        // Check if the target node is reached
+        if (currentNode == target) {
+            // Reconstruct the path
+            int current = target;
+            pathLength = 0;
+            while (current != -1) {
+                path[pathLength++] = current;
+                current = parent[current];
+            }
+            // Reverse the path to get the correct order
+            for (int i = 0; i < pathLength / 2; i++) {
+                int temp = path[i];
+                path[i] = path[pathLength - 1 - i];
+                path[pathLength - 1 - i] = temp;
+            }
+            return true;
+        }
+
+        // Explore neighbors
+        for (int neighbor = 0; neighbor < MAX_NODES; neighbor++) {
+            if (graph[currentNode][neighbor] && !visited[neighbor]) {
+                visited[neighbor] = true;
+                queue[rear++] = neighbor;
+                parent[neighbor] = currentNode; // Track the path
+            }
+        }
+    }
+
+    // If we reach here, the target is not reachable
+    return false;
+}
+
+
+
 };
 
 #endif  // NODE_H
