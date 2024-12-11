@@ -1,5 +1,9 @@
 #include <Arduino.h>
 #include <FastLED.h> 
+#include <List.hpp>
+#include "ParkingNode.h"
+
+using namespace std;
 
 #define NUM_LEDS 51
 #define LED_PIN     13  // Pin connected to the LED strip
@@ -18,6 +22,7 @@ const int latchPin = A1;  /* PL */
 const int clockInhibit = A5;
  
 const int numBits = 40;   /* Set to 8 * number of shift registers */
+
 
 void displayNumber (int number){
   uint16_t firstDigitEncoding[] = 
@@ -69,6 +74,9 @@ void setup() {
   pinMode(clockPin, OUTPUT);
   pinMode(latchPin, OUTPUT);
   pinMode(clockInhibit, OUTPUT);
+
+  
+
 }
  
 void loop() {
@@ -80,7 +88,6 @@ void loop() {
 
   bool sensorArray[numBits] = {false};
   int count = 0;
-      byte convertedValue;
  
   // Step 2: Shift
   Serial.print("Bits: ");
