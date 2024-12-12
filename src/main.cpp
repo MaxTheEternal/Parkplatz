@@ -1,7 +1,9 @@
 #include <Arduino.h>
 #include <FastLED.h> 
 #include <List.hpp>
-#include "ParkingNode.h"
+#include <ParkingGraph.h>
+#include <parkingLights.h>
+// #include "ParkingNode.h"
 
 #define NUM_LEDS 51
 #define LED_PIN     13  // Pin connected to the LED strip
@@ -22,6 +24,7 @@ const int clockInhibit = A5;
 const int numBits = 40;   /* Set to 8 * number of shift registers */
 
 void displayNumber(int number);
+void greenPath(int target);
 
 int sensorToLedMapping[numBits] = {12, 10, 1, 2, 22, 23, 11, 13, 3, 4, 5, 7, 16, 15, 18, 14, 21, 20, 19, 28, 32, 33, 34, 25, 35, 42, 31, 30, 49, 46, 47, 37, 41, 40, 39, 38, 50, 43, 51, 48};
 // byte toByte(int value) {
@@ -44,8 +47,8 @@ void setup() {
   pinMode(latchPin, OUTPUT);
   pinMode(clockInhibit, OUTPUT);
 
-  ParkingNode* entryNode = ParkingNode::init();
-  Serial.print(entryNode->childCount);
+  // ParkingNode* entryNode = ParkingNode::init();
+  // Serial.print(entryNode->childCount);
 
 }
  
@@ -64,15 +67,15 @@ void loop() {
     digitalWrite(clockPin, LOW);
     delayMicroseconds(5);
     int bit = digitalRead(dataPin);
-    Serial.print(i);
-    Serial.print(":");
+    // Serial.print(i);
+    // Serial.print(":");
     if (bit == HIGH) {
-      leds[sensorToLedMapping[i]] = CRGB::Black;
-      Serial.print("0");
+      leds[sensorToLedMapping[i]-1] = CRGB::Black;
+      // Serial.print("0");
     } else {
 
-      Serial.print("1");
-      leds[sensorToLedMapping[i]] = CRGB::Green;
+      // Serial.print("1");
+      leds[sensorToLedMapping[i]-1] = CRGB::Green;
 
       count++;
     }
@@ -81,12 +84,29 @@ void loop() {
     delayMicroseconds(5);
   }
 
+  // greenPath(count);
    displayNumber(count);
   FastLED.show();
   Serial.print(" Count: ");
   Serial.print(count);
   Serial.print("\n");
 
+}
+
+void greenPath(int target){
+  int startNode = 52; 
+    int path[graph::GRAPH_SIZE];
+    int pathLength = 0;
+
+    if (graph::bfsWithPath(startNode, target, path, pathLength)) {
+        for (int i = 0; i < pathLength; i++) {
+          leds[i] = CRGB::Green;
+          Serial.print("Node: ");
+          Serial.print(i);
+        }
+    } else {
+        Serial.println("No path found.");
+    }
 }
 
 
