@@ -10,6 +10,10 @@
 #define CHIPSET WS2812B
 #define COLOR_ORDER GRB
 
+#define PARKPLATZ_FREI 0
+#define PARKPLATZ_BELEGT 1
+#define PARKPLATZ_RESERVIERT
+
 CRGB leds[NUM_LEDS];
 
 const int dataPin = A0;  /* Q7 */
@@ -33,7 +37,7 @@ int zustandParkplaetze[numParkplaetze] = {0};
 
 void turnRedParkingSpaces(int i, bool taken);
 int findParkplatz();
-bool *readSensors();
+void readSensors();
 void turnOffLedsAfterCar(int sensorIndex);
 void turnOnLedsToParkplatz(int autoIndex);
 
@@ -128,16 +132,16 @@ int findParkplatz()
 {
   for (int i = 0; i < numParkplaetze; i++)
   {
-    if (zustandParkplaetze[i] == 0)
+    if (zustandParkplaetze[i] == PARKPLATZ_FREI)
     {
-      zustandParkplaetze[i] = 2;
+      zustandParkplaetze[i] = PARKPLATZ_RESERVIERT;
       return i;
     }
   }
   return -1;
 }
 
-bool *readSensors()
+void readSensors()
 {
   digitalWrite(latchPin, LOW);
   delay(50);
@@ -145,7 +149,6 @@ bool *readSensors()
   delay(50);
 
   int count = 0;
-  bool sensors[numBits] = {false};
 
   // Shift
   Serial.print("Bits: ");
@@ -157,7 +160,7 @@ bool *readSensors()
     // Sensor false
     if (bit == HIGH)
     {
-      if (zustandParkplaetze[i] == 1)
+      if (zustandParkplaetze[i] == PARKPLATZ_BELEGT)
       {
         turnRedParkingSpaces(i, false);
       }
@@ -165,9 +168,14 @@ bool *readSensors()
     // Sensor true
     else
     {
+
+      if (zustandParkplaetze[i] == PARKPLATZ_RESERVIERT)
+      {
+        zustandParkplaetze[i] == PARKPLATZ_BELEGT;
+        turnRedParkingSpaces(i, false);
+      }
       turnOffLedsAfterCar(i);
       turnRedParkingSpaces(i, true);
-      sensors[i] = true;
       count++;
     }
     Serial.print(" ");
@@ -179,8 +187,6 @@ bool *readSensors()
   Serial.print(" Count: ");
   Serial.print(count);
   Serial.print("\n");
-
-  return sensors;
 }
 
 void turnOffLedsAfterCar(int sensorIndex)
