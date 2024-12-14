@@ -6,33 +6,31 @@
 #include <List.hpp>
 
 #define NUM_LEDS 51
-#define LED_PIN 13 // Pin connected to the LED strip
+#define LED_PIN 12 // Pin connected to the LED strip
 #define CHIPSET WS2812B
 #define COLOR_ORDER GRB
 
 #define PARKPLATZ_FREI 0
 #define PARKPLATZ_BELEGT 1
 #define PARKPLATZ_RESERVIERT 2
+#define PARKPLATZ_VERLASSEN 3
+
+#define DATA_PIN 4
+#define CLOCK_PIN 17
+#define LATCH_PIN 16
+#define AUSGANG_SENSOR 39
+#define EINGANG_SENSOR 36
 
 CRGB leds[NUM_LEDS];
-
-const int dataPin = A0;  /* Q7 */
-const int clockPin = A2; /* CP */
-const int latchPin = A1; /* PL */
-const int clockInhibit = A5;
-
-const int eingangSensor = 0;
-const int ausgangSensor = 1;
 
 const int numBits = 40; /* Set to 8 * number of shift registers */
 const int numParkplaetze = 30;
 
-int sensorToLedMapping[numBits] = {11, 9, 0, 1, 21, 22, 10, 12, 2, 3, 4, 6, 15, 14, 17, 13, 20, 19, 18, 27, 31, 32, 33, 24, 34, 41, 30, 29, 48, 45, 46, 36, 40, 39, 38, 37, 49, 42, 50, 47};
+// int sensorToLedMapping[numBits] = {11, 9, 0, 1, 21, 22, 10, 12, 2, 3, 4, 6, 15, 14, 17, 13, 20, 19, 18, 27, 31, 32, 33, 24, 34, 41, 30, 29, 48, 45, 46, 36, 40, 39, 38, 37, 49, 42, 50, 47};
 
 List<Parkplatz::Parkplatz> carsGoingRound;
 int freeSpaces = numParkplaetze;
 
-// 0 = Frei; 1 == besetzt; 2 = reserviert
 int zustandParkplaetze[numParkplaetze] = {0};
 
 void turnRedParkingSpaces(int i, bool taken);
@@ -40,6 +38,20 @@ int findParkplatz();
 void readSensors();
 void turnOffLedsAfterCar(int sensorIndex);
 void turnOnLedsToParkplatz(int autoIndex);
+void SchrankenSchliessen();
+void ParkplatzZustandSetzen(int i, bool sensorAn);
+int FreiePlaetze();
+void PlatzFreiMachen();
+
+  
+
+  unsigned long eingangGEoeffnetZeit = 0; // Tracks the last time the servo moved
+  unsigned long ausgangGeoggnetZeit = 0;  // Tracks the last time the servo moved
+
+  bool eingangOffen = false;
+  bool ausgangOffen = false;
+
+  unsigned long delayTime = 5000; // Time to wait in milliseconds (5 seconds)
 
 void setup()
 {
@@ -53,79 +65,58 @@ void setup()
   // Sensor Setup
   Serial.begin(115200);
 
-  pinMode(dataPin, INPUT);
-  pinMode(clockPin, OUTPUT);
-  pinMode(latchPin, OUTPUT);
-  pinMode(clockInhibit, OUTPUT);
+  pinMode(DATA_PIN, INPUT);
+  pinMode(CLOCK_PIN, OUTPUT);
+  pinMode(LATCH_PIN, OUTPUT);
 
-  pinMode(eingangSensor, INPUT);
-  pinMode(ausgangSensor, OUTPUT);
+  pinMode(EINGANG_SENSOR, INPUT);
+  pinMode(AUSGANG_SENSOR, INPUT);
   EinAusGang::setup();
 }
 
 void loop()
 {
+  if(digitalRead(EINGANG_SENSOR) == LOW){
+    Serial.println("Eingang Sensor ");
+  }
+  if(digitalRead(AUSGANG_SENSOR) == LOW){
+    Serial.println("Ausgang Sensor");
+  }
 
-  if (digitalRead(eingangSensor))
+  if (digitalRead(EINGANG_SENSOR) == LOW && !eingangOffen)
   {
-    // Check freie plätze
-    if (freeSpaces > 0)
+    // Check freie plaetze
+    if (FreiePlaetze() > 0)
     {
-      freeSpaces--;
-      //  Schranke hoch
-      EinAusGang::EingangOeffnen();
-
       //  finde Parkplatz
       int platz = findParkplatz();
-      carsGoingRound.add(Parkplatz::allePlaetze[platz]);
-      turnOnLedsToParkplatz(platz);
+      if (platz != -1) {
+
+          //  Schranke hoch
+        Serial.println("Eingang Öffnen");
+        EinAusGang::EingangOeffnen();
+        eingangGEoeffnetZeit = millis();
+        eingangOffen = true;
+
+        //  Auto zu liste an Autos hinzufügen
+        carsGoingRound.add(Parkplatz::allePlaetze[platz]);
+        turnOnLedsToParkplatz(platz);
+      }
     }
   }
 
-  if (digitalRead(ausgangSensor))
+  if (digitalRead(AUSGANG_SENSOR) == LOW && !ausgangOffen)
   {
-    freeSpaces++;
-    if (freeSpaces > 30)
-    {
-      freeSpaces = 30;
-    }
+    ausgangGeoggnetZeit = millis();
+    ausgangOffen = true;
+    Serial.println("Ausgang Öffnen");
     EinAusGang::AusgangOeffnen();
   }
 
-  //  Auto zu liste an Autos hinzufügen
 
   readSensors();
-  display::displayNumber(freeSpaces);
-  EinAusGang::checkSchrankeSchliessen();
-}
-
-void turnRedParkingSpaces(int i, bool taken)
-{
-  // Achtung hier wird 0 basiert gezählt
-  switch (i)
-  {
-  case 1:
-  case 6:
-  case 11:
-  case 13:
-  case 24:
-  case 29:
-  case 27:
-  case 25:
-  case 19:
-  case 14:
-    break;
-  default:
-    if (taken)
-    {
-      leds[sensorToLedMapping[i]] = CRGB::Red;
-    }
-    else
-    {
-      leds[sensorToLedMapping[i]] = CRGB::Black;
-    };
-    break;
-  }
+  display::displayNumber(FreiePlaetze());
+  SchrankenSchliessen();
 }
 
 int findParkplatz()
@@ -143,50 +134,39 @@ int findParkplatz()
 
 void readSensors()
 {
-  digitalWrite(latchPin, LOW);
+  digitalWrite(LATCH_PIN, LOW);
   delay(50);
-  digitalWrite(latchPin, HIGH);
+  digitalWrite(LATCH_PIN, HIGH);
   delay(50);
-
-  int count = 0;
 
   // Shift
-  Serial.print("Bits: ");
+  // Serial.print("Bits: ");
   for (int i = 0; i < numBits; i++)
   {
-    digitalWrite(clockPin, LOW);
+    digitalWrite(CLOCK_PIN, LOW);
     delayMicroseconds(5);
-    int bit = digitalRead(dataPin);
+    int bit = digitalRead(DATA_PIN);
+
     // Sensor false
     if (bit == HIGH)
     {
-      if (zustandParkplaetze[i] == PARKPLATZ_BELEGT)
-      {
-        turnRedParkingSpaces(i, false);
-      }
+      ParkplatzZustandSetzen(i, false);
     }
     // Sensor true
     else
     {
-
-      if (zustandParkplaetze[i] == PARKPLATZ_RESERVIERT)
-      {
-        zustandParkplaetze[i] == PARKPLATZ_BELEGT;
-        turnRedParkingSpaces(i, false);
-      }
       turnOffLedsAfterCar(i);
-      turnRedParkingSpaces(i, true);
-      count++;
+      ParkplatzZustandSetzen(i, true);
     }
-    Serial.print(" ");
-    digitalWrite(clockPin, HIGH); // Shift out the next bit
+    // Serial.print(" ");
+    digitalWrite(CLOCK_PIN, HIGH); // Shift out the next bit
     delayMicroseconds(5);
   }
 
   FastLED.show();
-  Serial.print(" Count: ");
-  Serial.print(count);
-  Serial.print("\n");
+  // Serial.print(" Count: ");
+  // Serial.print(count);
+  // Serial.print("\n");
 }
 
 void turnOffLedsAfterCar(int sensorIndex)
@@ -213,3 +193,59 @@ void turnOnLedsToParkplatz(int autoIndex)
     leds[target.ledPfad[i]] = CRGB::Green;
   }
 }
+
+
+void SchrankenSchliessen(){
+  if (eingangOffen && millis() >= eingangGEoeffnetZeit + delayTime) {
+    eingangOffen = false;
+    EinAusGang::EingangSchliessen();
+  }
+
+  if (ausgangOffen && millis() >= ausgangGeoggnetZeit + delayTime) {
+    ausgangOffen = false;
+    EinAusGang::AusgangSchliessen();
+  }
+}
+
+
+  void ParkplatzZustandSetzen(int i, bool sensorAn) {
+  int platz = Parkplatz::SensorToParkplatz[i];
+  if (platz == -1) {
+    return;
+  }
+  if (sensorAn) {
+      if (zustandParkplaetze[platz] == PARKPLATZ_RESERVIERT)
+      {
+        zustandParkplaetze[platz] = PARKPLATZ_BELEGT;
+        leds[Parkplatz::ParkplatzToLed[platz]] == CRGB::Red;
+      } else if (zustandParkplaetze[platz] == PARKPLATZ_VERLASSEN){
+        zustandParkplaetze[platz] = PARKPLATZ_BELEGT;
+        leds[Parkplatz::ParkplatzToLed[platz]] == CRGB::Red;
+      }
+ } else {
+      if (zustandParkplaetze[platz] == PARKPLATZ_BELEGT)
+      {
+        zustandParkplaetze[platz] = PARKPLATZ_VERLASSEN;
+        leds[Parkplatz::ParkplatzToLed[platz]] == CRGB::Black;
+      }
+  }
+
+ }
+
+ int FreiePlaetze() {
+  int count = 0;
+  for(int i = 0; i < numParkplaetze; i++){
+    if (zustandParkplaetze[i] == PARKPLATZ_FREI) {
+      count++;
+    }
+  }
+  return count;
+ }
+
+ void PlatzFreiMachen(){
+   for(int i = 0; i < numParkplaetze; i++){
+    if (zustandParkplaetze[i] == PARKPLATZ_VERLASSEN) {
+      zustandParkplaetze[i] = PARKPLATZ_FREI;
+    }
+  } 
+ }

@@ -1,8 +1,8 @@
 #include <Arduino.h>
 
-#define DISPLAY_RCLK A4 // RCLK Pin
-#define DISPLAY_SRCLK A5 // SRCLK Pin
-#define DISPLAY_SER A3 // SER Pin
+#define DISPLAY_RCLK 18 // RCLK Pin
+#define DISPLAY_SRCLK 19// SRCLK Pin
+#define DISPLAY_SER 5 // SER Pin
 namespace display {
 
 void displayNumber (int number){
