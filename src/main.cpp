@@ -34,7 +34,7 @@ Servo ausgangServo;
 
 unsigned long eingangGEoeffnetZeit = 0; // Tracks the last time the servo moved
 unsigned long ausgangGeoggnetZeit = 0;  // Tracks the last time the servo moved
-unsigned long delayTime = 5000; // Time to wait in milliseconds (5 seconds)
+unsigned long delayTime = 3000; // Time to wait in milliseconds (3 seconds)
 
 
 bool eingangOffen = false;
@@ -67,6 +67,7 @@ void PlatzFreiMachen();
 void TurnOnParkingLeds();
 void LedCarousel();
 void displayNumber(byte number);
+void removeCars(int sensorIndex);
 
 void setup() {
   FastLED.addLeds<CHIPSET, LED_PIN, COLOR_ORDER>(leds, NUM_LEDS);
@@ -176,6 +177,8 @@ void readSensors()
     // Serial.print(" ");
     digitalWrite(CLOCK_PIN, HIGH); // Shift out the next bit
     delayMicroseconds(5);
+
+    // removeCars(i);
   }
 
   TurnOnParkingLeds();
@@ -183,6 +186,7 @@ void readSensors()
 
 void turnOffLedsAfterCar(int sensorIndex)
 {
+  int removeIndex = 0;
   for (int i = 0; i < carsGoingRound.getSize(); i++)
   {
     Parkplatz::Parkplatz curCar = carsGoingRound.get(i);
@@ -195,6 +199,18 @@ void turnOffLedsAfterCar(int sensorIndex)
     }
   }
 }
+
+// void removeCars(int sensorIndex){
+//   for (int i = 0; i < carsGoingRound.getSize(); i++)
+//   {
+//     Parkplatz::Parkplatz curCar = carsGoingRound.get(i);
+//       int lastSensor = curCar.sensorPfad[curCar.length - 1];
+//       if (sensorIndex == lastSensor){
+//         carsGoingRound.remove(i);
+//         break;
+//       }
+//     }
+// }
 
 void turnOnLedsToParkplatz(int autoIndex)
 {
@@ -220,25 +236,32 @@ void SchrankenSchliessen(){
 }
 
   void ParkplatzZustandSetzen(int i, bool sensorAn) {
-  int platz = Parkplatz::SensorToParkplatz[i];
-  if (platz == -1) {
-    return;
-  }
-
-  // Keine Ahnung warum aber 19 startet als 3 also mache ich mal das
-  if (platz == 19 && neunZehnCounter < 5) {
-    neunZehnCounter++;
-    zustandParkplaetze[19] = 0;
-    return;
-  }
-  if (sensorAn) {
-        zustandParkplaetze[platz] = PARKPLATZ_BELEGT;
-  } else {
-      if (zustandParkplaetze[platz] == PARKPLATZ_BELEGT)
-      {
-        zustandParkplaetze[platz] = PARKPLATZ_VERLASSEN;
-      }
-  }
+    int platz = Parkplatz::SensorToParkplatz[i];
+    if (platz == -1) {
+      return;
+    }
+    // Keine Ahnung warum aber 19 startet als 3 also mache ich mal das
+    if (platz == 19 && neunZehnCounter < 5) {
+      neunZehnCounter++;
+      zustandParkplaetze[19] = 0;
+      return;
+    }
+    if (sensorAn) {
+        if(zustandParkplaetze[platz] == PARKPLATZ_RESERVIERT){
+          for(int c = 0; c < carsGoingRound.getSize(); c++){
+            if(carsGoingRound.get(c).sensorPfad[carsGoingRound.get(c).length -1] == i){
+              carsGoingRound.remove(c);
+              break;
+            }
+          }
+        }
+          zustandParkplaetze[platz] = PARKPLATZ_BELEGT;
+    } else {
+        if (zustandParkplaetze[platz] == PARKPLATZ_BELEGT)
+        {
+          zustandParkplaetze[platz] = PARKPLATZ_VERLASSEN;
+        }
+    }
  }
 
  int FreiePlaetze() {
